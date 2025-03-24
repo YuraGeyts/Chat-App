@@ -35,7 +35,7 @@ def register(sio):
         """
         username = users.pop(sid, 'Anonymous')
         print(f'❌ Disconnected: {username} ({sid})')
-        await sio.emit('user_disconnected', {'username': username})
+        await sio.emit('user_list', list(users.values()))
 
     @sio.event
     async def set_username(sid, data):
