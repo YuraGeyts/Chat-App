@@ -1,6 +1,6 @@
 ### chat-backend/app/events.py
 
-from .state import users
+from .state import users, room_messages
 
 # This function registers all event handlers with the given socket.io server
 def register(sio):
@@ -18,6 +18,7 @@ def register(sio):
             None
         """
         print(f'🔌 Connected: {sid}')
+        await sio.enter_room(sid, 'general')
 
     @sio.event
     async def disconnect(sid):
@@ -77,5 +78,21 @@ def register(sio):
             'username': username,
             'text': data.get('text', '')
         }
-        print(f'💬 {username}: {message["text"]}')
-        await sio.emit('chat_message', message)
+        room = data.get('room', 'general')
+
+        room_messages[room].append(message)
+        print(f'💬 {username}: {message["text"]}') 
+        await sio.emit('chat_message', message, room=room)
+
+    @sio.event
+    async def join_room(sid, room_name):
+        sio.enter_room(sid, room_name)
+        print(f'🚪 {users.get(sid, 'Anonymous')} joined room: {room_name}')
+        await sio.emit('chat_message', {'text': f'User {users.get(sid, "Anonymous")} joined the room'}, room=room_name)
+
+    @sio.event
+    async def leave_room(sid, room_name):
+        sio.leave_room(sid, room_name)
+        print(f'🚪 {users.get(sid, "Anonymous")} left room: {room_name}')
+        await sio.emit('chat_message', {'text': f'User {users.get(sid, "Anonymous")} left the room'}, room=room_name)
+
