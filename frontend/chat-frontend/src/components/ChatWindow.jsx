@@ -7,10 +7,12 @@ import UserList from './UserList';
 const ChatWindow = ({ username }) => {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [currentRoom, setCurrentRoom] = useState('general'); // Default room
 
   useEffect(() => {
     // Listen for incoming messages
     socket.on('chat_message', (data) => {
+      console.log('Received message:', data);
       setMessages((prev) => [...prev, data]);
     });
 
@@ -27,13 +29,28 @@ const ChatWindow = ({ username }) => {
   }, []);
 
   const sendMessage = (text) => {
-    socket.emit('chat_message', { text });
+    socket.emit('chat_message', { text, room: currentRoom });
+  };
+
+  const joinRoom = (roomName) => {
+    if (roomName !== currentRoom) {
+      socket.emit('leave_room', currentRoom);  // Leave the previous room
+      socket.emit('join_room', roomName);      // Join the new room
+      setMessages([]);                          // Clear messages when changing rooms
+      setCurrentRoom(roomName);
+    }
   };
 
   return (
     <div>
       <h2>Welcome, {username}</h2>
       <UserList users={onlineUsers} />
+      <div>
+        <h3>Rooms:</h3>
+        <button onClick={() => joinRoom('general')}>General</button>
+        <button onClick={() => joinRoom('tech')}>Tech</button>
+        <button onClick={() => joinRoom('random')}>Random</button>
+      </div>
       <MessageList messages={messages} />
       <MessageInput onSend={sendMessage} />
     </div>
